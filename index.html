@@ -267,13 +267,20 @@ renderer.domElement.addEventListener('pointerup',()=>dragging=false);
 renderer.domElement.addEventListener('pointercancel',()=>dragging=false);
 
 function resize() {
-  const w=innerWidth, h=innerHeight;
-  renderer.setSize(w,h,false);
-  camera.aspect = w/h; camera.updateProjectionMatrix();
-  leftCamera.near=rightCamera.near=camera.near; leftCamera.far=rightCamera.far=camera.far;
+  // Use the actual visible stage dimensions; mobile browsers can update innerWidth
+  // a moment after fullscreen/orientation changes.
+  const rect = stage.getBoundingClientRect();
+  const w = Math.max(1, Math.round(rect.width || window.innerWidth));
+  const h = Math.max(1, Math.round(rect.height || window.innerHeight));
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h; camera.updateProjectionMatrix();
+  leftCamera.near = rightCamera.near = camera.near;
+  leftCamera.far = rightCamera.far = camera.far;
 }
-window.addEventListener('resize', resize);
-window.addEventListener('orientationchange', () => setTimeout(resize,150));
+window.addEventListener('resize', () => { resize(); requestAnimationFrame(resize); });
+window.addEventListener('orientationchange', () => { setTimeout(resize, 100); setTimeout(resize, 400); });
+document.addEventListener('fullscreenchange', () => { setTimeout(resize, 100); setTimeout(resize, 400); });
+if ('ResizeObserver' in window) new ResizeObserver(resize).observe(stage);
 
 async function enterVR() {
   if (vrMode) return;
@@ -282,12 +289,16 @@ async function enterVR() {
     startSensors();
     try { await document.documentElement.requestFullscreen?.(); } catch {}
     try { await screen.orientation?.lock?.('landscape'); } catch {}
+    // Some Android browsers apply the landscape dimensions asynchronously.
+    await new Promise(resolve => setTimeout(resolve, 250));
+    resize();
     vrMode = true;
     document.body.classList.add('vr');
     panel.classList.add('hidden'); exitBtn.style.display='block'; help.textContent='Gaze at a glowing object for 1.4 seconds · Tap Exit VR to return';
     statusEl.textContent='VR view active. If the view does not follow your head, check sensor permissions.';
     enterBtn.textContent='VR view active';
     resize();
+    requestAnimationFrame(resize);
   } catch (err) {
     statusEl.textContent = err?.message || 'Could not enable motion tracking.';
   }
