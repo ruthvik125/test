@@ -64,7 +64,8 @@ const statusEl = document.querySelector('#status');
 const reticle = document.querySelector('#reticle');
 const progressCircle = document.querySelector('#progress');
 const help = document.querySelector('#help');
-
+const canvasSize = new THREE.Vector2();
+  
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x101827);
 scene.fog = new THREE.Fog(0x101827, 8, 22);
@@ -326,9 +327,11 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && vrM
 
 function renderStereo() {
   // Renderer viewport/scissor coordinates are in CSS pixels, not drawing-buffer pixels.
-  const w=innerWidth, h=innerHeight;
-  const half=Math.floor(w/2);
-  const eyeSeparation=.032; // 32 mm interpupillary separation, suitable for a simple demo.
+  renderer.getSize(canvasSize);
+  const w = canvasSize.width, h = canvasSize.height;
+  const half = Math.floor(w / 2);
+  
+  const eyeSeparation = .032; // 32 mm interpupillary separation
   leftCamera.copy(camera); rightCamera.copy(camera);
   leftCamera.aspect=half/h; rightCamera.aspect=(w-half)/h;
   leftCamera.position.copy(camera.position);
